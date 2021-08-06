@@ -49,8 +49,8 @@ async function loadPyodideAndPackages() {
   kernel = pyodide.globals.get('robotkernel_instance');
   stdout_stream = pyodide.globals.get('pyolite').stdout_stream;
   stderr_stream = pyodide.globals.get('pyolite').stderr_stream;
+  kernel.interpreter.send_comm = sendComm;
   interpreter = kernel;
-  interpreter.send_comm = sendComm;
   const version = pyodide.globals.get('pyolite').__version__;
   console.log('Robolite kernel initialized, version', version);
 }
@@ -245,6 +245,7 @@ async function execute(content: any) {
   interpreter.display_pub.display_data_callback = displayDataCallback;
   interpreter.display_pub.update_display_data_callback = updateDisplayDataCallback;
   interpreter.displayhook.publish_execution_result = publishExecutionResult;
+  interpreter.displayhook.publish_execution_error = publishExecutionError;
   interpreter.input = input;
   interpreter.getpass = getpass;
 
