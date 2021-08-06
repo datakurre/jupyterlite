@@ -3165,6 +3165,19 @@
     "@jupyterlab/docmanager" "^3.1.0-rc.2"
     "@jupyterlab/services" "^6.1.0-rc.2"
 
+"@jupyterlite/robolite-kernel-extension@file:packages/robolite-kernel-extension":
+  version "0.1.0-alpha.6"
+  dependencies:
+    "@jupyterlab/coreutils" "^5.1.0-rc.2"
+    "@jupyterlite/kernel" "^0.1.0-alpha.6"
+    "@jupyterlite/robolite-kernel" "^0.1.0-alpha.6"
+    "@jupyterlite/server" "^0.1.0-alpha.6"
+
+"@jupyterlite/robolite-kernel@file:packages/robolite-kernel":
+  version "0.1.0-alpha.6"
+  dependencies:
+    "@jupyterlite/kernel" "^0.1.0-alpha.6"
+
 "@jupyterlite/server@file:packages/server-extension":
   version "0.1.0-alpha.6"
   dependencies:

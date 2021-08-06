@@ -43,6 +43,12 @@
       "path": "./packages/retro-application-extension"
     },
     {
+      "path": "./packages/robolite-kernel"
+    },
+    {
+      "path": "./packages/robolite-kernel-extension"
+    },
+    {
       "path": "./packages/server"
     },
     {

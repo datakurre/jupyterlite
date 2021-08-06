@@ -31,6 +31,8 @@
     "@jupyterlite/p5-kernel-extension": "file:../p5-kernel-extension",
     "@jupyterlite/pyolite-kernel": "file:../pyolite-kernel",
     "@jupyterlite/pyolite-kernel-extension": "file:../pyolite-kernel-extension",
+    "@jupyterlite/robolite-kernel": "file:../robolite-kernel",
+    "@jupyterlite/robolite-kernel-extension": "file:../robolite-kernel-extension",
     "@jupyterlite/server": "file:../server-extension",
     "@jupyterlite/session": "file:../session",
     "@jupyterlite/settings": "file:../settings",

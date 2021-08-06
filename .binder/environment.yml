@@ -38,6 +38,7 @@ dependencies:
   - ipyleaflet ==0.14.0
   - ipympl ==0.7.0
   - plotly ==5.1.0
+  - jupyterlab_robotmode >=0.3.1
   ### FEDERATED EXTENSIONS ###
 
   # the chunk below gets copied from `../docs/environment.yml` by `doit env`
