@@ -29,30 +29,29 @@ async function loadPyodideAndPackages() {
       'traitlets',
       '${_widgetsnbextensionWheelUrl}',
       '${_nbformatWheelUrl}',
-      '${_ipykernelWheelUrl}'
-    ])
-    await micropip.install([
-      '${_pyoliteWheelUrl}'
+      '${_ipykernelWheelUrl}',
+      '${_pyoliteWheelUrl}',
+      'ipython',
     ]);
-    await micropip.install('ipython');
-    await micropip.install('robotframework');
-    await micropip.install('ipywidgets');
-    await micropip.install('lunr');
-    await micropip.install('nbformat');
     await micropip.install([
-      '${_robotkernelWheelUrl}'
+      '${_robotkernelWheelUrl}',
+      'robotframework',
+      'ipywidgets',
+      'lunr',
+      'nbformat',
     ]);
     import pyolite
     from robotkernel.kernel import RobotKernel;
     robotkernel_instance = RobotKernel();
   `);
-  kernel = pyodide.globals.get('robotkernel_instance');
+  kernel = pyodide.globals.get('pyolite').kernel_instance;
   stdout_stream = pyodide.globals.get('pyolite').stdout_stream;
   stderr_stream = pyodide.globals.get('pyolite').stderr_stream;
-  kernel.interpreter.send_comm = sendComm;
-  interpreter = kernel;
+  interpreter = kernel.interpreter;
+  interpreter.send_comm = sendComm;
   const version = pyodide.globals.get('pyolite').__version__;
-  console.log('Robolite kernel initialized, version', version);
+  kernel = pyodide.globals.get('robotkernel_instance');
+  console.log('Pyolite kernel initialized, version', version);
 }
 
 /**
@@ -159,12 +158,14 @@ async function execute(content: any) {
   const publishExecutionResult = (
     prompt_count: any,
     data: any,
-    metadata: any
+    metadata: any,
+    transient: any
   ): void => {
     const bundle = {
       execution_count: prompt_count,
       data: formatResult(data),
-      metadata: formatResult(metadata)
+      metadata: formatResult(metadata),
+      transient: formatResult(transient)
     };
     postMessage({
       parentHeader: formatResult(kernel._parent_header['header']),
