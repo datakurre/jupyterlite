@@ -51,6 +51,9 @@ async function loadPyodideAndPackages() {
     import pyolite
     from robotkernel.kernel import RobotKernel;
     robotkernel_instance = RobotKernel();
+    import json
+    import os
+    os.environ.update(json.loads('${_envJson}'))
   `);
   kernel = pyodide.globals.get('pyolite').kernel_instance;
   stdout_stream = pyodide.globals.get('pyolite').stdout_stream;
@@ -115,12 +118,8 @@ async function sendComm(
     content: formatResult(content),
     metadata: formatResult(metadata),
     ident: formatResult(ident),
-<<<<<<< HEAD
     buffers: formatResult(buffers),
     parentHeader: formatResult(kernel._parent_header)['header']
-=======
-    buffers: formatResult(buffers)
->>>>>>> 126dd0b (WIP)
   });
 }
 
@@ -157,11 +156,7 @@ async function sendInputRequest(prompt: string, password: boolean) {
   };
   postMessage({
     type: 'input_request',
-<<<<<<< HEAD
     parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-    parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
     content
   });
 }
@@ -175,28 +170,17 @@ async function execute(content: any) {
   const publishExecutionResult = (
     prompt_count: any,
     data: any,
-<<<<<<< HEAD
     metadata: any,
     transient: any
-=======
-    metadata: any
->>>>>>> 126dd0b (WIP)
   ): void => {
     const bundle = {
       execution_count: prompt_count,
       data: formatResult(data),
-<<<<<<< HEAD
       metadata: formatResult(metadata),
       transient: formatResult(transient)
     };
     postMessage({
       parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-      metadata: formatResult(metadata)
-    };
-    postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
       bundle,
       type: 'execute_result'
     });
@@ -206,17 +190,10 @@ async function execute(content: any) {
     const bundle = {
       ename: ename,
       evalue: evalue,
-<<<<<<< HEAD
       traceback: typeof traceback === 'string' ? JSON.parse(traceback) : traceback
     };
     postMessage({
       parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-      traceback: traceback
-    };
-    postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
       bundle,
       type: 'execute_error'
     });
@@ -227,11 +204,7 @@ async function execute(content: any) {
       wait: formatResult(wait)
     };
     postMessage({
-<<<<<<< HEAD
       parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-      parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
       bundle,
       type: 'clear_output'
     });
@@ -244,11 +217,7 @@ async function execute(content: any) {
       transient: formatResult(transient)
     };
     postMessage({
-<<<<<<< HEAD
       parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-      parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
       bundle,
       type: 'display_data'
     });
@@ -265,11 +234,7 @@ async function execute(content: any) {
       transient: formatResult(transient)
     };
     postMessage({
-<<<<<<< HEAD
       parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-      parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
       bundle,
       type: 'update_display_data'
     });
@@ -281,11 +246,7 @@ async function execute(content: any) {
       text: formatResult(text)
     };
     postMessage({
-<<<<<<< HEAD
       parentHeader: formatResult(kernel._parent_header)['header'],
-=======
-      parentHeader: formatResult(kernel._parent_header['header']),
->>>>>>> 126dd0b (WIP)
       bundle,
       type: 'stream'
     });
@@ -297,23 +258,13 @@ async function execute(content: any) {
   interpreter.display_pub.display_data_callback = displayDataCallback;
   interpreter.display_pub.update_display_data_callback = updateDisplayDataCallback;
   interpreter.displayhook.publish_execution_result = publishExecutionResult;
-<<<<<<< HEAD
   interpreter.displayhook.publish_execution_error = publishExecutionError;
-=======
->>>>>>> 126dd0b (WIP)
   interpreter.input = input;
   interpreter.getpass = getpass;
 
   const res = await kernel.run(content.code);
   const results = formatResult(res);
 
-<<<<<<< HEAD
-=======
-  if (results['status'] === 'error') {
-    publishExecutionError(results['ename'], results['evalue'], results['traceback']);
-  }
-
->>>>>>> 126dd0b (WIP)
   return results;
 }
 /**

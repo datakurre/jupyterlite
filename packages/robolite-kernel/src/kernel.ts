@@ -50,6 +50,8 @@ export class RoboliteKernel extends BaseKernel implements IKernel {
       options.robotkernelWheel ?? ((robotkernel as unknown) as string);
     const robotkernelWheelUrl = URLExt.join(window.location.origin, robotkernelWheel);
 
+    const envJson = localStorage.getItem('env') || '{}';
+
     const indexUrl = pyodideUrl.slice(0, pyodideUrl.lastIndexOf('/') + 1);
     const blob = new Blob([
       [
@@ -60,6 +62,7 @@ export class RoboliteKernel extends BaseKernel implements IKernel {
         `var _ipykernelWheelUrl = '${ipykernelWheelUrl}';`,
         `var _pyoliteWheelUrl = '${pyoliteWheelUrl}';`,
         `var _robotkernelWheelUrl = '${robotkernelWheelUrl}';`,
+        `var _envJson = '${envJson.replace(/'/g, "\\''")}';`,
         worker
       ].join('\n')
     ]);

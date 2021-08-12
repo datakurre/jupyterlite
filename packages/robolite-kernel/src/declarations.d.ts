@@ -16,3 +16,4 @@ declare let _nbformatWheelUrl: string;
 declare let _ipykernelWheelUrl: string;
 declare let _pyoliteWheelUrl: string;
 declare let _robotkernelWheelUrl: string;
+declare let _envJson: string;

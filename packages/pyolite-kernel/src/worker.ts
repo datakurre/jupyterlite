@@ -44,6 +44,9 @@ async function loadPyodideAndPackages() {
     ]);
     await micropip.install('ipython');
     import pyolite
+    import json
+    import os
+    os.environ.update(json.loads('${_envJson}'))
   `);
 
   // make copies of these so they don't get garbage collected

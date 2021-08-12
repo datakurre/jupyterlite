@@ -45,6 +45,8 @@ export class PyoliteKernel extends BaseKernel implements IKernel {
     const pyoliteWheel = options.pyoliteWheel ?? ((pyolite as unknown) as string);
     const pyoliteWheelUrl = URLExt.join(window.location.origin, pyoliteWheel);
 
+    const envJson = localStorage.getItem('env') || '{}';
+
     const indexUrl = pyodideUrl.slice(0, pyodideUrl.lastIndexOf('/') + 1);
     const blob = new Blob([
       [
@@ -54,6 +56,7 @@ export class PyoliteKernel extends BaseKernel implements IKernel {
         `var _nbformatWheelUrl = '${nbformatWheelUrl}';`,
         `var _ipykernelWheelUrl = '${ipykernelWheelUrl}';`,
         `var _pyoliteWheelUrl = '${pyoliteWheelUrl}';`,
+        `var _envJson = '${envJson.replace(/'/g, "\\''")}';`,
         worker
       ].join('\n')
     ]);
