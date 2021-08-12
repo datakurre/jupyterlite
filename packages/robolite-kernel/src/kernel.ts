@@ -172,7 +172,8 @@ export class RoboliteKernel extends BaseKernel implements IKernel {
       },
       protocol_version: '5.3',
       status: 'ok',
-      banner: 'Robolite: A WebAssembly-powered Python kernel backed by Pyodide',
+      banner:
+        'Robolite: Based on a WebAssembly-powered Robot Framework kernel backed by Pyodide',
       help_links: [
         {
           text: 'Python (WASM) Kernel',
