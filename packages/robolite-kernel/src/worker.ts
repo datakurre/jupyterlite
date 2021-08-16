@@ -9,6 +9,11 @@ let kernel: any;
 let interpreter: any;
 // eslint-disable-next-line
 // @ts-ignore: breaks typedoc
+
+let pyodide: any;
+
+// eslint-disable-next-line
+// @ts-ignore: breaks typedoc
 let stdout_stream: any;
 // eslint-disable-next-line
 // @ts-ignore: breaks typedoc
@@ -16,12 +21,15 @@ let stderr_stream: any;
 // eslint-disable-next-line
 // @ts-ignore: breaks typedoc
 let resolveInputReply: any;
+
 /**
  * Load Pyodided and initialize the interpreter.
  */
 async function loadPyodideAndPackages() {
-  // new in 0.17.0 indexURL must be provided
-  await loadPyodide({ indexURL });
+  // as of 0.17.0 indexURL must be provided
+  pyodide = await loadPyodide({ indexURL });
+
+  await pyodide.loadPackage(['micropip']);
   await pyodide.loadPackage(['matplotlib']);
   await pyodide.runPythonAsync(`
     import micropip
@@ -107,7 +115,8 @@ async function sendComm(
     content: formatResult(content),
     metadata: formatResult(metadata),
     ident: formatResult(ident),
-    buffers: formatResult(buffers)
+    buffers: formatResult(buffers),
+    parentHeader: formatResult(kernel._parent_header)['header']
   });
 }
 
@@ -144,7 +153,7 @@ async function sendInputRequest(prompt: string, password: boolean) {
   };
   postMessage({
     type: 'input_request',
-    parentHeader: formatResult(kernel._parent_header['header']),
+    parentHeader: formatResult(kernel._parent_header)['header'],
     content
   });
 }
@@ -168,7 +177,7 @@ async function execute(content: any) {
       transient: formatResult(transient)
     };
     postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
+      parentHeader: formatResult(kernel._parent_header)['header'],
       bundle,
       type: 'execute_result'
     });
@@ -181,7 +190,7 @@ async function execute(content: any) {
       traceback: traceback
     };
     postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
+      parentHeader: formatResult(kernel._parent_header)['header'],
       bundle,
       type: 'execute_error'
     });
@@ -192,7 +201,7 @@ async function execute(content: any) {
       wait: formatResult(wait)
     };
     postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
+      parentHeader: formatResult(kernel._parent_header)['header'],
       bundle,
       type: 'clear_output'
     });
@@ -205,7 +214,7 @@ async function execute(content: any) {
       transient: formatResult(transient)
     };
     postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
+      parentHeader: formatResult(kernel._parent_header)['header'],
       bundle,
       type: 'display_data'
     });
@@ -222,7 +231,7 @@ async function execute(content: any) {
       transient: formatResult(transient)
     };
     postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
+      parentHeader: formatResult(kernel._parent_header)['header'],
       bundle,
       type: 'update_display_data'
     });
@@ -234,7 +243,7 @@ async function execute(content: any) {
       text: formatResult(text)
     };
     postMessage({
-      parentHeader: formatResult(kernel._parent_header['header']),
+      parentHeader: formatResult(kernel._parent_header)['header'],
       bundle,
       type: 'stream'
     });
