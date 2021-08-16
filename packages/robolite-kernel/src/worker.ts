@@ -187,7 +187,7 @@ async function execute(content: any) {
     const bundle = {
       ename: ename,
       evalue: evalue,
-      traceback: traceback
+      traceback: typeof traceback === 'string' ? JSON.parse(traceback) : traceback
     };
     postMessage({
       parentHeader: formatResult(kernel._parent_header)['header'],
@@ -261,10 +261,6 @@ async function execute(content: any) {
 
   const res = await kernel.run(content.code);
   const results = formatResult(res);
-
-  if (results['status'] === 'error') {
-    publishExecutionError(results['ename'], results['evalue'], results['traceback']);
-  }
 
   return results;
 }
