@@ -7,6 +7,7 @@ import { BaseKernel, IKernel } from '@jupyterlite/kernel';
 import { PromiseDelegate } from '@lumino/coreutils';
 
 import worker from './worker?raw';
+import bpmn from '../bpmn-moddle.umd.js?raw';
 
 // TODO: see https://github.com/jupyterlite/jupyterlite/issues/151
 // TODO: sync this version with the npm version (despite version mangling)
@@ -51,6 +52,7 @@ export class PyoliteKernel extends BaseKernel implements IKernel {
     const blob = new Blob([
       [
         `importScripts("${pyodideUrl}");`,
+        bpmn,
         `var indexURL = "${indexUrl}";`,
         `var _widgetsnbextensionWheelUrl = '${widgetsnbextensionWheelUrl}';`,
         `var _nbformatWheelUrl = '${nbformatWheelUrl}';`,

@@ -22,6 +22,8 @@ let stderr_stream: any;
 // @ts-ignore: breaks typedoc
 let resolveInputReply: any;
 
+declare function BpmnModdle(): any;
+
 /**
  * Load Pyodided and initialize the interpreter.
  */
@@ -48,6 +50,7 @@ async function loadPyodideAndPackages() {
     import os
     os.environ.update(json.loads('${_envJson}'))
   `);
+  pyodide.registerJsModule('BpmnModdle', BpmnModdle);
 
   // make copies of these so they don't get garbage collected
   kernel = pyodide.globals.get('pyolite').kernel_instance.copy();
