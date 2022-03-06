@@ -6,22 +6,25 @@
   },
   "include": ["src/**/*"],
   "references": [
+    { "path": "../application" },
     { "path": "../application-extension" },
     { "path": "../contents" },
     { "path": "../iframe-extension" },
     { "path": "../javascript-kernel" },
     { "path": "../javascript-kernel-extension" },
     { "path": "../kernel" },
-    { "path": "../p5-kernel" },
-    { "path": "../p5-kernel-extension" },
+    { "path": "../licenses" },
     { "path": "../pyolite-kernel" },
     { "path": "../pyolite-kernel-extension" },
     { "path": "../robolite-kernel" },
     { "path": "../robolite-kernel-extension" },
+    { "path": "../repl-extension" },
     { "path": "../retro-application-extension" },
     { "path": "../server-extension" },
     { "path": "../session" },
     { "path": "../settings" },
+    { "path": "../translation" },
+    { "path": "../types" },
     { "path": "../ui-components" }
   ]
 }

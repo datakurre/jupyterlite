@@ -2,20 +2,19 @@ name: jupyterlite-dev
 # this is a conda/mamba environment for working on JupyterLite and upstreams
 
 channels:
-  - conda-forge/label/jupyterlab_rc
   - conda-forge
 
 dependencies:
   # build stuff
   - black
-  - flit >=3.1
+  - depfinder
   - isort
   - pyflakes
   - twine
   # demo stuff
   - jupyter-server-proxy
-  - jupyterlab >=3.1.0rc2,<4
-  - retrolab
+  - jupyterlab >=3.3.0,<4
+  - retrolab >=0.3.20,<0.4
   # extra docs tools
   - sphinx-autobuild
 
@@ -32,12 +31,14 @@ dependencies:
   - theme-darcula >=3,<4
   # if a package is pinned with == `doit check` will ensure the version is pinned
   # in `docs/_build/_static/files/*.ipynb`
-  - bqplot ==0.12.30
-  - ipycanvas ==0.9.0
-  - ipycytoscape ==1.2.2
-  - ipyleaflet ==0.14.0
-  - ipympl ==0.7.0
-  - plotly ==5.1.0
+  - bqplot
+  - ipycanvas
+  - ipycytoscape
+  - ipyleaflet
+  - ipympl
+  - ipyvue
+  - ipyvuetify
+  - plotly
   - jupyterlab_robotmode >=0.3.1
   ### FEDERATED EXTENSIONS ###
 
@@ -48,10 +49,12 @@ dependencies:
   - python >=3.9,<3.10
   # build
   - doit >=0.33,<0.34
-  - flit >=3.1
-  - pip
-  - wheel
+  - flit >=3.1,!=3.5.0
+  - jupyter-server-mathjax >=0.2.3
   - jsonschema >=3
+  - pip
+  - pkginfo
+  - wheel
   - yarn <2
   # cli
   - wheel
@@ -70,4 +73,9 @@ dependencies:
   - pytest-cov
   - pytest-html
   - pytest-xdist
+  # language packs and contents
+  - jupyter_server >=1.11,<2
+  - jupyterlab-language-pack-fr-FR
+  - jupyterlab-language-pack-zh-CN
+  - jupyterlab_server >=2.8.1,<3
   ### DOCS ENV ###

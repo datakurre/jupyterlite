@@ -6,11 +6,41 @@ from traitlets import Bool, Instance, Unicode, default
 
 from . import __version__
 from .config import LiteBuildConfig
-from .constants import PHASES
+from .constants import NOARCH_WHL, PHASES
 from .manager import LiteManager
+from .trait_types import CPath
+
+#: some flags we use
+lite_flags = {
+    "ignore-sys-prefix": (
+        {"LiteBuildConfig": {"ignore_sys_prefix": True}},
+        "Do not copy anything from sys.prefix",
+    ),
+    "no-sourcemaps": (
+        {"LiteBuildConfig": {"no_sourcemaps": True}},
+        "Strip all sourcemaps from applications and extensions",
+    ),
+    "no-unused-shared-packages": (
+        {"LiteBuildConfig": {"no_unused_shared_packages": True}},
+        "Remove shared packages not used by --apps",
+    ),
+    **{
+        flag: value
+        for flag, value in base_flags.items()
+        if flag not in ["show-config", "show-config-json", "generate-config"]
+    },
+}
 
 
-class BaseLiteApp(JupyterApp, LiteBuildConfig):
+class DescribedMixin:
+    """a self-describing mixin"""
+
+    @property
+    def description(self):
+        return self.__doc__.splitlines()[0].strip()
+
+
+class BaseLiteApp(JupyterApp, LiteBuildConfig, DescribedMixin):
     """TODO: An undescribed app"""
 
     version = __version__
@@ -21,34 +51,33 @@ class BaseLiteApp(JupyterApp, LiteBuildConfig):
     aliases = dict(
         **base_aliases,
         **{
+            # meta options
+            "disable-addons": "LiteBuildConfig.disable_addons",
+            # input options
             "app-archive": "LiteBuildConfig.app_archive",
             "apps": "LiteBuildConfig.apps",
+            # top-level
+            "lite-dir": "LiteBuildConfig.lite_dir",
+            # contents
             "contents": "LiteBuildConfig.contents",
             "ignore-contents": "LiteBuildConfig.ignore_contents",
-            "lite-dir": "LiteBuildConfig.lite_dir",
+            # settings
+            "settings-overrides": "LiteBuildConfig.settings_overrides",
+            "mathjax-dir": "LiteBuildConfig.mathjax_dir",
+            # output options
             "output-dir": "LiteBuildConfig.output_dir",
             "output-archive": "LiteBuildConfig.output_archive",
-            "settings-overrides": "LiteBuildConfig.settings_overrides",
             "source-date-epoch": "LiteBuildConfig.source_date_epoch",
-            # addon-specific things
+            # server-specific things
             "port": "LiteBuildConfig.port",
             "base-url": "LiteBuildConfig.base_url",
+            # pyolite things likely to move away
+            "piplite-wheels": "LiteBuildConfig.piplite_urls",
+            "pyodide": "LiteBuildConfig.pyodide_url",
         },
     )
 
-    flags = dict(
-        **base_flags,
-        **{
-            "ignore-sys-prefix": (
-                {"LiteBuildConfig": {"ignore_sys_prefix": True}},
-                "Do not copy any extensions from sys.prefix",
-            )
-        },
-    )
-
-    @property
-    def description(self):
-        return self.__doc__.splitlines()[0].strip()
+    flags = lite_flags
 
 
 class ManagedApp(BaseLiteApp):
@@ -67,6 +96,8 @@ class ManagedApp(BaseLiteApp):
             kwargs["app_archive"] = self.app_archive
         if self.output_dir:
             kwargs["output_dir"] = self.output_dir
+        if self.mathjax_dir:
+            kwargs["mathjax_dir"] = self.mathjax_dir
         if self.contents:
             kwargs["contents"] = [Path(p) for p in self.contents]
         if self.ignore_contents:
@@ -75,6 +106,10 @@ class ManagedApp(BaseLiteApp):
             kwargs["settings_overrides"] = [Path(p) for p in self.settings_overrides]
         if self.apps:
             kwargs["apps"] = self.apps
+        if self.no_sourcemaps is not None:
+            kwargs["no_sourcemaps"] = self.no_sourcemaps
+        if self.no_unused_shared_packages is not None:
+            kwargs["no_unused_shared_packages"] = self.no_unused_shared_packages
         if self.output_archive:
             kwargs["output_archive"] = Path(self.output_archive)
         if self.disable_addons:
@@ -89,6 +124,10 @@ class ManagedApp(BaseLiteApp):
             kwargs["federated_extensions"] = self.federated_extensions
         if self.ignore_sys_prefix is not None:
             kwargs["ignore_sys_prefix"] = self.ignore_sys_prefix
+        if self.piplite_urls is not None:
+            kwargs["piplite_urls"] = self.piplite_urls
+        if self.pyodide_url is not None:
+            kwargs["pyodide_url"] = self.pyodide_url
 
         return LiteManager(**kwargs)
 
@@ -136,7 +175,7 @@ class LiteTaskApp(LiteDoitApp):
     ).tag(config=True)
 
     flags = dict(
-        **base_flags,
+        **lite_flags,
         **{
             "force": (
                 {"LiteTaskApp": {"force": True}},
@@ -195,6 +234,56 @@ class LiteArchiveApp(LiteTaskApp):
     _doit_task = "archive"
 
 
+class PipliteIndex(DescribedMixin, JupyterApp):
+    """index a directory of wheels for piplite into an all.json
+
+    this file is suitable for including in a pre-built lab extension and will be
+    found by adding to the extension's ``package.json``:
+
+    .. code-block: json
+
+        {
+            "name": "my-extension",
+            "jupyterlab": {
+                "extension": true
+            },
+            "piplite": {
+                "wheelDir": "./pypi"
+            }
+        }
+    """
+
+    version = __version__
+
+    wheel_dir = CPath(Path.cwd(), help="a path of wheels")
+
+    def parse_command_line(self, argv=None):
+        super(PipliteIndex, self).parse_command_line(argv)
+
+        if self.extra_args:
+            self.wheel_dir = Path(self.extra_args[0])
+
+    def start(self):
+        if not self.wheel_dir.exists():
+            raise ValueError(f"{self.wheel_dir} does not exist")
+        if not [*self.wheel_dir.glob(f"*{NOARCH_WHL}")]:
+            raise ValueError(f"no wheels found in {self.wheel_dir}")
+        from .addons.piplite import write_wheel_index
+
+        write_wheel_index(self.wheel_dir)
+
+
+class PipliteApp(DescribedMixin, JupyterApp):
+    """tools for working with piplite"""
+
+    subcommands = {
+        k: (v, v.__doc__.splitlines()[0].strip())
+        for k, v in dict(
+            index=PipliteIndex,
+        ).items()
+    }
+
+
 class LiteApp(BaseLiteApp):
     """build ready-to-serve (or -publish) JupyterLite sites"""
 
@@ -212,8 +301,12 @@ class LiteApp(BaseLiteApp):
             archive=LiteArchiveApp,
             # more special apps
             doit=LiteRawDoitApp,
+            pip=PipliteApp,
         ).items()
     }
 
 
 main = launch_new_instance = LiteApp.launch_instance
+
+if __name__ == "__main__":  # pragma: nocover
+    main()

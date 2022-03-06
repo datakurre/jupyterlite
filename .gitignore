@@ -33,6 +33,7 @@ parts/
 sdist/
 var/
 wheels/
+pypi/
 pip-wheel-metadata/
 share/python-wheels/
 .installed.cfg
@@ -123,7 +124,15 @@ app/test/data
 # extras
 # do not include kernels such as Pyodide
 app/kernels
-app/lab/extensions
+app/extensions
+
+# generated html
+app/lab/index.html
+app/repl/index.html
+app/retro/consoles/index.html
+app/retro/edit/index.html
+app/retro/notebooks/index.html
+app/retro/tree/index.html
 
 *.log
 
@@ -139,3 +148,7 @@ docs/jupyter_execute
 *.tar.gz
 *.tgz
 *.whl
+
+ui-tests/playwright-report
+ui-tests/test-results
+ui-tests/ui-tests-app

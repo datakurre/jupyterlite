@@ -10,6 +10,9 @@
   "extends": "./tsconfigbase",
   "references": [
     {
+      "path": "./packages/application"
+    },
+    {
       "path": "./packages/application-extension"
     },
     {
@@ -28,16 +31,16 @@
       "path": "./packages/kernel"
     },
     {
-      "path": "./packages/p5-kernel"
-    },
-    {
-      "path": "./packages/p5-kernel-extension"
+      "path": "./packages/licenses"
     },
     {
       "path": "./packages/pyolite-kernel"
     },
     {
       "path": "./packages/pyolite-kernel-extension"
+    },
+    {
+      "path": "./packages/repl-extension"
     },
     {
       "path": "./packages/retro-application-extension"
@@ -59,6 +62,12 @@
     },
     {
       "path": "./packages/settings"
+    },
+    {
+      "path": "./packages/translation"
+    },
+    {
+      "path": "./packages/types"
     },
     {
       "path": "./packages/ui-components"

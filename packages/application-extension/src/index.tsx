@@ -2,14 +2,15 @@
 // Distributed under the terms of the Modified BSD License.
 
 import {
+  IRouter,
   JupyterFrontEndPlugin,
   JupyterFrontEnd,
-  ILabShell
+  ILabShell,
 } from '@jupyterlab/application';
 
-import { ICommandPalette, Dialog, showDialog } from '@jupyterlab/apputils';
+import { Clipboard, ICommandPalette, Dialog, showDialog } from '@jupyterlab/apputils';
 
-import { PageConfig } from '@jupyterlab/coreutils';
+import { PageConfig, URLExt } from '@jupyterlab/coreutils';
 
 import { IDocumentManager } from '@jupyterlab/docmanager';
 
@@ -18,7 +19,7 @@ import {
   IDocumentProviderFactory,
   ProviderMock,
   getAnonymousUserName,
-  getRandomColor
+  getRandomColor,
 } from '@jupyterlab/docprovider';
 
 import { IFileBrowserFactory } from '@jupyterlab/filebrowser';
@@ -27,13 +28,13 @@ import { IMainMenu } from '@jupyterlab/mainmenu';
 
 import { Contents } from '@jupyterlab/services';
 
-import { ITranslator, TranslationManager } from '@jupyterlab/translation';
+import { ITranslator } from '@jupyterlab/translation';
 
-import { downloadIcon } from '@jupyterlab/ui-components';
+import { downloadIcon, linkIcon } from '@jupyterlab/ui-components';
 
 import { liteIcon, liteWordmark } from '@jupyterlite/ui-components';
 
-import { toArray } from '@lumino/algorithm';
+import { filter, toArray } from '@lumino/algorithm';
 
 import { UUID, PromiseDelegate } from '@lumino/coreutils';
 
@@ -43,11 +44,32 @@ import { getParam } from 'lib0/environment';
 
 import { WebrtcProvider } from 'y-webrtc';
 
+import { Awareness } from 'y-protocols/awareness';
+
 import React from 'react';
 
+/**
+ * The default notebook factory.
+ */
+const NOTEBOOK_FACTORY = 'Notebook';
+
+/**
+ * The editor factory.
+ */
+const EDITOR_FACTORY = 'Editor';
+
+/**
+ * A regular expression to match path to notebooks, documents and consoles
+ */
+const URL_PATTERN = new RegExp('/(lab|notebooks|edit|consoles)\\/?');
+
 class WebRtcProvider extends WebrtcProvider implements IDocumentProvider {
-  constructor(options: IDocumentProviderFactory.IOptions & { room: string }) {
-    super(`${options.room}${options.path}`, options.ymodel.ydoc);
+  constructor(options: IWebRtcProvider.IOptions) {
+    super(
+      `${options.room}${options.path}`,
+      options.ymodel.ydoc,
+      WebRtcProvider.yProviderOptions(options)
+    );
     this.awareness = options.ymodel.awareness;
     const color = `#${getParam('--usercolor', getRandomColor().slice(1))}`;
     const name = getParam('--username', getAnonymousUserName());
@@ -56,7 +78,7 @@ class WebRtcProvider extends WebrtcProvider implements IDocumentProvider {
     if (currState && !currState.name) {
       this.awareness.setLocalStateField('user', {
         name,
-        color
+        color,
       });
     }
   }
@@ -102,6 +124,53 @@ class WebRtcProvider extends WebrtcProvider implements IDocumentProvider {
 }
 
 /**
+ * A public namespace for WebRTC options
+ */
+export namespace IWebRtcProvider {
+  export interface IOptions extends IDocumentProviderFactory.IOptions {
+    room: string;
+    signalingUrls?: string[];
+  }
+
+  export interface IYjsWebRtcOptions {
+    signaling: Array<string>;
+    password: string | null;
+    awareness: Awareness;
+    maxConns: number;
+    filterBcConns: boolean;
+    peerOpts: any;
+  }
+}
+
+/**
+ * A private (so far) namespace for Yjs/WebRTC implementation details
+ */
+namespace WebRtcProvider {
+  /**
+   * Re-map Lab provider options to yjs ones.
+   */
+  export function yProviderOptions(
+    options: IWebRtcProvider.IOptions
+  ): IWebRtcProvider.IYjsWebRtcOptions {
+    return {
+      signaling:
+        options.signalingUrls && options.signalingUrls.length
+          ? options.signalingUrls
+          : [
+              'wss://signaling.yjs.dev',
+              'wss://y-webrtc-signaling-eu.herokuapp.com',
+              'wss://y-webrtc-signaling-us.herokuapp.com',
+            ],
+      password: null,
+      awareness: new Awareness(options.ymodel.ydoc),
+      maxConns: 20 + Math.floor(Math.random() * 15), // the random factor reduces the chance that n clients form a cluster
+      filterBcConns: true,
+      peerOpts: {}, // simple-peer options. See https://github.com/feross/simple-peer#peer--new-peeropts
+    };
+  }
+}
+
+/**
  * The command IDs used by the application extension.
  */
 namespace CommandIDs {
@@ -110,6 +179,8 @@ namespace CommandIDs {
   export const docmanagerDownload = 'docmanager:download';
 
   export const filebrowserDownload = 'filebrowser:download';
+
+  export const copyShareableLink = 'filebrowser:share-main';
 }
 
 /**
@@ -190,11 +261,11 @@ const about: JupyterFrontEndPlugin<void> = {
           buttons: [
             Dialog.createButton({
               label: trans.__('Dismiss'),
-              className: 'jp-About-button jp-mod-reject jp-mod-styled'
-            })
-          ]
+              className: 'jp-About-button jp-mod-reject jp-mod-styled',
+            }),
+          ],
         });
-      }
+      },
     });
 
     if (palette) {
@@ -204,7 +275,7 @@ const about: JupyterFrontEndPlugin<void> = {
     if (menu) {
       menu.helpMenu.addGroup([{ command: CommandIDs.about }], 0);
     }
-  }
+  },
 };
 
 /**
@@ -218,18 +289,22 @@ const docProviderPlugin: JupyterFrontEndPlugin<IDocumentProviderFactory> = {
     const host = window.location.host;
     // enable if both the page config option (deployment wide) and the room name (user) are defined
     const collaborative = PageConfig.getOption('collaborative') === 'true' && roomName;
+    const signalingUrls = JSON.parse(
+      PageConfig.getOption('fullWebRtcSignalingUrls') || 'null'
+    );
     // default to a random id to not collaborate with others by default
     const room = `${host}-${roomName || UUID.uuid4()}`;
     const factory = (options: IDocumentProviderFactory.IOptions): IDocumentProvider => {
       return collaborative
         ? new WebRtcProvider({
             room,
-            ...options
+            ...options,
+            ...(signalingUrls && signalingUrls.length ? { signalingUrls } : {}),
           })
         : new ProviderMock();
     };
     return factory;
-  }
+  },
 };
 
 /**
@@ -239,17 +314,18 @@ const downloadPlugin: JupyterFrontEndPlugin<void> = {
   id: '@jupyterlite/application-extension:download',
   autoStart: true,
   requires: [ITranslator, IDocumentManager],
-  optional: [ICommandPalette, IFileBrowserFactory, IMainMenu],
+  optional: [ICommandPalette, IFileBrowserFactory],
   activate: (
     app: JupyterFrontEnd,
     translator: ITranslator,
     docManager: IDocumentManager,
     palette: ICommandPalette | null,
-    factory: IFileBrowserFactory | null,
-    mainMenu: IMainMenu | null
+    factory: IFileBrowserFactory | null
   ) => {
     const trans = translator.load('jupyterlab');
-    const { commands, contextMenu, serviceManager, shell } = app;
+    const { commands, serviceManager, shell } = app;
+    const { contents } = serviceManager;
+
     const isEnabled = () => {
       const { currentWidget } = shell;
       return !!(currentWidget && docManager.contextForWidget(currentWidget));
@@ -264,11 +340,19 @@ const downloadPlugin: JupyterFrontEndPlugin<void> = {
       document.body.removeChild(element);
     };
 
+    const formatContent = async (path: string) => {
+      const model = await contents.get(path, { content: true });
+      if (model.type === 'notebook' || model.mimetype.indexOf('json') !== -1) {
+        return JSON.stringify(model.content, null, 2);
+      }
+      return model.content;
+    };
+
     commands.addCommand(CommandIDs.docmanagerDownload, {
       label: trans.__('Download'),
       caption: trans.__('Download the file to your computer'),
       isEnabled,
-      execute: () => {
+      execute: async () => {
         // Checks that shell.currentWidget is valid:
         const current = shell.currentWidget;
         if (!isEnabled() || !current) {
@@ -279,11 +363,12 @@ const downloadPlugin: JupyterFrontEndPlugin<void> = {
           return showDialog({
             title: trans.__('Cannot Download'),
             body: trans.__('No context found for current widget!'),
-            buttons: [Dialog.okButton({ label: trans.__('OK') })]
+            buttons: [Dialog.okButton({ label: trans.__('OK') })],
           });
         }
-        downloadContent(context.model.toString(), context.path);
-      }
+        const content = await formatContent(context.path);
+        downloadContent(content, context.path);
+      },
     });
 
     const category = trans.__('File Operations');
@@ -292,13 +377,8 @@ const downloadPlugin: JupyterFrontEndPlugin<void> = {
       palette.addItem({ command: CommandIDs.docmanagerDownload, category });
     }
 
-    if (mainMenu) {
-      mainMenu.fileMenu.addGroup([{ command: CommandIDs.docmanagerDownload }], 6);
-    }
-
     if (factory) {
       const { tracker } = factory;
-      const { contents } = serviceManager;
 
       commands.addCommand(CommandIDs.filebrowserDownload, {
         execute: async () => {
@@ -312,25 +392,15 @@ const downloadPlugin: JupyterFrontEndPlugin<void> = {
             if (item.type === 'directory') {
               return;
             }
-            const file = await contents.get(item.path, { content: true });
-            const formatted =
-              file.type === 'notebook' || file.mimetype.indexOf('json') !== -1
-                ? JSON.stringify(file.content, null, 2)
-                : file.content;
-            downloadContent(formatted, item.name);
+            const content = await formatContent(item.path);
+            downloadContent(content, item.name);
           });
         },
         icon: downloadIcon.bindprops({ stylesheet: 'menuItem' }),
-        label: trans.__('Download')
-      });
-
-      contextMenu.addItem({
-        command: CommandIDs.filebrowserDownload,
-        selector: '.jp-DirListing-item[data-isdir="false"]',
-        rank: 9
+        label: trans.__('Download'),
       });
     }
-  }
+  },
 };
 
 /**
@@ -351,24 +421,149 @@ const liteLogo: JupyterFrontEndPlugin<void> = {
       elementPosition: 'center',
       margin: '2px 2px 2px 8px',
       height: 'auto',
-      width: '16px'
+      width: '16px',
     });
     logo.id = 'jp-MainLogo';
     labShell.add(logo, 'top', { rank: 0 });
-  }
+  },
 };
 
 /**
- * A simplified Translator
+ * A plugin to trigger a refresh of the commands when the shell layout changes.
  */
-const translator: JupyterFrontEndPlugin<ITranslator> = {
-  id: '@jupyterlite/application-extension:translator',
-  activate: (app: JupyterFrontEnd): ITranslator => {
-    const translationManager = new TranslationManager();
-    return translationManager;
-  },
+const notifyCommands: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/application-extension:notify-commands',
   autoStart: true,
-  provides: ITranslator
+  optional: [ILabShell],
+  activate: (app: JupyterFrontEnd, labShell: ILabShell | null) => {
+    if (labShell) {
+      labShell.layoutModified.connect(() => {
+        app.commands.notifyCommandChanged();
+      });
+    }
+  },
+};
+
+/**
+ * A custom opener plugin to pass the path to documents as
+ * query string parameters.
+ */
+const opener: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/application-extension:opener',
+  autoStart: true,
+  requires: [IRouter, IDocumentManager],
+  activate: (
+    app: JupyterFrontEnd,
+    router: IRouter,
+    docManager: IDocumentManager
+  ): void => {
+    const { commands } = app;
+
+    const command = 'router:tree';
+    commands.addCommand(command, {
+      execute: (args: any) => {
+        const parsed = args as IRouter.ILocation;
+        // use request to do the matching
+        const { request, search } = parsed;
+        const matches = request.match(URL_PATTERN) ?? [];
+        if (!matches) {
+          return;
+        }
+
+        const urlParams = new URLSearchParams(search);
+        const paths = urlParams.getAll('path');
+        if (!paths) {
+          return;
+        }
+        const files = paths.map((path) => decodeURIComponent(path));
+        app.restored.then(() => {
+          const page = PageConfig.getOption('retroPage');
+          const [file] = files;
+          switch (page) {
+            case 'consoles': {
+              commands.execute('console:create', { path: file });
+              return;
+            }
+            case 'notebooks': {
+              docManager.open(file, NOTEBOOK_FACTORY, undefined, {
+                ref: '_noref',
+              });
+              return;
+            }
+            case 'edit': {
+              docManager.open(file, EDITOR_FACTORY, undefined, {
+                ref: '_noref',
+              });
+              return;
+            }
+            default: {
+              // open all files in the lab interface
+              files.forEach((file) => docManager.open(file));
+              const url = new URL(URLExt.join(PageConfig.getBaseUrl(), request));
+              // only remove the path (to keep extra parameters like the RTC room)
+              url.searchParams.delete('path');
+              const { pathname, search } = url;
+              router.navigate(`${pathname}${search}`, { skipRouting: true });
+              break;
+            }
+          }
+        });
+      },
+    });
+
+    router.register({ command, pattern: URL_PATTERN });
+  },
+};
+
+/**
+ * A custom plugin to share a link to a file.
+ *
+ * This url can be used to open a particular file in JupyterLab.
+ * It also adds the corresponding room if RTC is enabled.
+ *
+ */
+const shareFile: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/application-extension:share-file',
+  requires: [IFileBrowserFactory, ITranslator],
+  autoStart: true,
+  activate: (
+    app: JupyterFrontEnd,
+    factory: IFileBrowserFactory,
+    translator: ITranslator
+  ): void => {
+    const trans = translator.load('jupyterlab');
+    const { commands } = app;
+    const { tracker } = factory;
+
+    const roomName = getParam('--room', '').trim();
+    const collaborative = PageConfig.getOption('collaborative') === 'true' && roomName;
+
+    commands.addCommand(CommandIDs.copyShareableLink, {
+      execute: () => {
+        const widget = tracker.currentWidget;
+        if (!widget) {
+          return;
+        }
+
+        const url = new URL(URLExt.join(PageConfig.getBaseUrl(), 'lab'));
+        const models = toArray(
+          filter(widget.selectedItems(), (item) => item.type !== 'directory')
+        );
+        models.forEach((model) => {
+          url.searchParams.append('path', model.path);
+        });
+        if (collaborative) {
+          url.searchParams.append('room', roomName);
+        }
+        Clipboard.copyToSystem(url.href);
+      },
+      isVisible: () =>
+        !!tracker.currentWidget &&
+        toArray(tracker.currentWidget.selectedItems()).length >= 1,
+      icon: linkIcon.bindprops({ stylesheet: 'menuItem' }),
+      label: trans.__('Copy Shareable Link'),
+    });
+  },
 };
 
 const plugins: JupyterFrontEndPlugin<any>[] = [
@@ -376,7 +571,9 @@ const plugins: JupyterFrontEndPlugin<any>[] = [
   docProviderPlugin,
   downloadPlugin,
   liteLogo,
-  translator
+  notifyCommands,
+  opener,
+  shareFile,
 ];
 
 export default plugins;

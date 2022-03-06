@@ -1,11 +1,9 @@
 // Copyright (c) Jupyter Development Team.
 // Distributed under the terms of the Modified BSD License.
 
-import {
-  IRouter,
-  JupyterFrontEndPlugin,
-  JupyterFrontEnd
-} from '@jupyterlab/application';
+import { JupyterFrontEndPlugin, JupyterFrontEnd } from '@jupyterlab/application';
+
+import { IConsoleTracker } from '@jupyterlab/console';
 
 import { PageConfig, PathExt } from '@jupyterlab/coreutils';
 
@@ -19,20 +17,31 @@ import { liteWordmark } from '@jupyterlite/ui-components';
 
 import { Widget } from '@lumino/widgets';
 
-/**
- * The default notebook factory.
- */
-const NOTEBOOK_FACTORY = 'Notebook';
+import { IRetroShell } from '@retrolab/application';
 
 /**
- * The editor factory.
+ * Open consoles in a new tab.
  */
-const EDITOR_FACTORY = 'Editor';
+const consoles: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/retro-application-extension:consoles',
+  requires: [IConsoleTracker],
+  autoStart: true,
+  activate: (app: JupyterFrontEnd, tracker: IConsoleTracker) => {
+    const baseUrl = PageConfig.getBaseUrl();
+    tracker.widgetAdded.connect(async (send, console) => {
+      const { sessionContext } = console;
+      const page = PageConfig.getOption('retroPage');
+      if (page === 'consoles') {
+        return;
+      }
+      const path = sessionContext.path;
+      window.open(`${baseUrl}retro/consoles?path=${path}`, '_blank');
 
-/**
- * A regular expression to match path to notebooks and documents
- */
-const TREE_PATTERN = new RegExp('/(notebooks|edit)\\/?');
+      // the widget is not needed anymore
+      console.dispose();
+    });
+  },
+};
 
 /**
  * A plugin to open document in a new browser tab.
@@ -64,7 +73,7 @@ const docmanager: JupyterFrontEndPlugin<void> = {
       window.open(`${baseUrl}retro/${route}?path=${path}`);
       return undefined;
     };
-  }
+  },
 };
 
 /**
@@ -86,64 +95,34 @@ const logo: JupyterFrontEndPlugin<void> = {
       elementPosition: 'center',
       padding: '2px 2px 2px 8px',
       height: '28px',
-      width: 'auto'
+      width: 'auto',
     });
     logo.id = 'jp-RetroLogo';
     app.shell.add(logo, 'top', { rank: 0 });
-  }
+  },
 };
 
 /**
- * A custom openeer plugin to pass the path to documents as
- * query string parameters.
+ * A plugin to trigger a refresh of the commands when the shell layout changes.
  */
-const opener: JupyterFrontEndPlugin<void> = {
-  id: '@jupyterlite/retro-application-extension:opener',
+const notifyCommands: JupyterFrontEndPlugin<void> = {
+  id: '@jupyterlite/retro-application-extension:notify-commands',
   autoStart: true,
-  requires: [IRouter, IDocumentManager],
-  activate: (
-    app: JupyterFrontEnd,
-    router: IRouter,
-    docManager: IDocumentManager
-  ): void => {
-    const { commands } = app;
-
-    const command = 'router:tree';
-    commands.addCommand(command, {
-      execute: (args: any) => {
-        const parsed = args as IRouter.ILocation;
-        // use request to do the matching
-        const matches = parsed.request.match(TREE_PATTERN) ?? [];
-        if (!matches) {
-          return;
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const path = urlParams.get('path');
-        if (!path) {
-          return;
-        }
-        const file = decodeURIComponent(path);
-        const ext = PathExt.extname(file);
-        app.restored.then(() => {
-          // TODO: get factory from file type instead?
-          if (ext === '.ipynb') {
-            docManager.open(file, NOTEBOOK_FACTORY, undefined, {
-              ref: '_noref'
-            });
-          } else {
-            docManager.open(file, EDITOR_FACTORY, undefined, {
-              ref: '_noref'
-            });
-          }
-        });
-      }
-    });
-
-    router.register({ command, pattern: TREE_PATTERN });
-  }
+  optional: [IRetroShell],
+  activate: (app: JupyterFrontEnd, retroShell: IRetroShell | null) => {
+    if (retroShell) {
+      retroShell.currentChanged.connect(() => {
+        app.commands.notifyCommandChanged();
+      });
+    }
+  },
 };
 
-const plugins: JupyterFrontEndPlugin<any>[] = [docmanager, logo, opener];
+const plugins: JupyterFrontEndPlugin<any>[] = [
+  consoles,
+  docmanager,
+  logo,
+  notifyCommands,
+];
 
 export default plugins;

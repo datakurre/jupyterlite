@@ -1,8 +1,14 @@
 # Deploying
 
-Deploying your JupyterLite requires:
+Deploying a JupyterLite site requires:
 
-- an actual HTTP server (doesn't presently work with `file://` URLs)
+- a copy of the JupyterLite site assets
+  - often provided by the `pip`-installable python package `jupyterlite`
+- an option set of [configurations](./configuring.md) for the site and different apps
+  - different options offer trade-offs between reproducibility, build speed, deployment
+    size, and end-user performance, privacy, and security
+- a [local](#local), [on-premises](#on-premises), or [hosted](#hosted) HTTP server
+  (doesn't presently work with `file://` URLs)
 
 ```{warning}
 Serving some of the [kernels](./kernels/index.md) requires that your web server supports
@@ -15,8 +21,8 @@ An HTTPS-capable server is recommended for all but the simplest `localhost` case
 
 ## Get an Empty JupyterLite Site
 
-The minimum deployable site contains enough to run JupyterLab and RetroLab, but no
-content.
+The minimum deployable site archive contains enough to run all of the default
+[applications](./applications/index.md), but no content.
 
 ```{hint}
 Use of the CLI is optional, but **recommended**. It offers substantially better
@@ -60,7 +66,8 @@ be enough to deploy along with the rest of your content.
 
 ### WebPack
 
-> TBD
+At present, the core JupyterLite site and apps are not published as reusable packages.
+At some point in the future, a WebPack plugin might allow for integrating at this level.
 
 ### sphinx
 
@@ -106,7 +113,7 @@ Adapting the example above:
 html_extra_path = ["../upstream-jupyterlite", "../my-jupyterlite"]
 ```
 
-Again, the last-written `index.html` will "win" and be shown to vistors to `/`, which
+Again, the last-written `index.html` will "win" and be shown to visitors to `/`, which
 will immediately redirect to `appUrl` as defined in the [schema].
 
 [html_static_path]:
@@ -125,6 +132,12 @@ will immediately redirect to `appUrl` as defined in the [schema].
 
 Suitable for local development, many languages provide easy-to-use servers that can
 serve your JupyterLite locally while you get it working the way you want.
+
+#### `jupyter lite serve`
+
+The `jupyter lite serve` command offers either a web server powered by Python's built-in
+`http.server` or `tornado`, which is likely to be available if any other Jupyter tools
+are installed.
 
 #### Jupyter
 
@@ -246,7 +259,60 @@ You might also want to specify the `--debug` flag to get extra log messages:
 
 ### Vercel
 
-> TBD
+Just like Netlify, [Vercel](https://vercel.com) can connect to an existing git
+repository and seamlessly deploy static files on push and PR events (previews).
+
+Unfortunately, their build image only includes Python 3.6 and JupyterLite requires
+Python 3.7+.
+
+Fortunately it is possible to run arbitrary bash scripts, which provides a convenient
+escape hatch.
+
+Specify the Python packages in a `requirements-deploy.txt` file with additional
+dependencies if needed:
+
+```
+jupyterlab~=3.1.0
+jupyterlite
+```
+
+Then create a new `deploy.sh` file with the following content:
+
+```bash
+#!/bin/bash
+
+yum install wget
+
+wget -qO- https://micromamba.snakepit.net/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+
+./bin/micromamba shell init -s bash -p ~/micromamba
+source ~/.bashrc
+
+# activate the environment and install a new version of Python
+micromamba activate
+micromamba install python=3.9 -c conda-forge -y
+
+# install the dependencies
+python -m pip install -r requirements-deploy.txt
+
+# build the JupyterLite site
+jupyter lite --version
+jupyter lite build --output-dir dist
+```
+
+[Micromamba](https://github.com/mamba-org/mamba#micromamba) creates a new self-contained
+environment, which makes it very convenient to install any required package without
+being limited by the build image.
+
+Then configure the build command and output directory on Vercel:
+
+![image](https://user-images.githubusercontent.com/591645/135726080-93ca6930-19de-4371-ad13-78f5716b7299.png)
+
+You might also want to specify the `--debug` flag to get extra log messages:
+
+```bash
+jupyter lite build --debug
+```
 
 ### GitHub Pages
 

@@ -1,6 +1,6 @@
 {
   "name": "@jupyterlite/application-extension",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-beta.1",
   "description": "JupyterLite - Application Extension",
   "homepage": "https://github.com/jupyterlite/jupyterlite",
   "bugs": {
@@ -37,20 +37,20 @@
     "watch": "tsc -b --watch"
   },
   "dependencies": {
-    "@jupyterlab/application": "^3.1.0-rc.2",
-    "@jupyterlab/apputils": "^3.1.0-rc.2",
-    "@jupyterlab/docmanager": "^3.1.0-rc.2",
-    "@jupyterlab/docprovider": "^3.1.0-rc.2",
-    "@jupyterlab/filebrowser": "^3.1.0-rc.2",
-    "@jupyterlab/help-extension": "^3.1.0-rc.2",
-    "@jupyterlab/mainmenu": "^3.1.0-rc.2",
-    "@jupyterlab/services": "^6.1.0-rc.2",
-    "@jupyterlab/translation": "^3.1.0-rc.2",
-    "@jupyterlab/ui-components": "^3.1.0-rc.2",
-    "@jupyterlite/ui-components": "^0.1.0-alpha.6",
-    "@lumino/algorithm": "^1.6.0",
-    "@lumino/coreutils": "^1.8.0",
-    "@lumino/widgets": "^1.23.0",
+    "@jupyterlab/application": "~3.3.0",
+    "@jupyterlab/apputils": "~3.3.0",
+    "@jupyterlab/docmanager": "~3.3.0",
+    "@jupyterlab/docprovider": "~3.3.0",
+    "@jupyterlab/filebrowser": "~3.3.0",
+    "@jupyterlab/help-extension": "~3.3.0",
+    "@jupyterlab/mainmenu": "~3.3.0",
+    "@jupyterlab/services": "~6.3.0",
+    "@jupyterlab/translation": "~3.3.0",
+    "@jupyterlab/ui-components": "~3.3.0",
+    "@jupyterlite/ui-components": "^0.1.0-beta.1",
+    "@lumino/algorithm": "^1.9.1",
+    "@lumino/coreutils": "^1.12.0",
+    "@lumino/widgets": "^1.31.1",
     "y-webrtc": "^10.2.0"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
     "jest": "^26.4.2",
     "rimraf": "~3.0.0",
     "ts-jest": "^26.3.0",
-    "typescript": "~4.2.3"
+    "typescript": "~4.5.2"
   },
   "publishConfig": {
     "access": "public"

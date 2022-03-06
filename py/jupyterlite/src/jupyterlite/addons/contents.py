@@ -5,7 +5,7 @@ import pprint
 import re
 from pathlib import Path
 
-from ..constants import ALL_JSON, API_CONTENTS
+from ..constants import ALL_JSON, API_CONTENTS, JSON_FMT, UTF8
 from .base import BaseAddon
 
 
@@ -15,7 +15,7 @@ class ContentsAddon(BaseAddon):
     __all__ = ["build", "post_build", "check", "status"]
 
     def status(self, manager):
-        """yield some status information about the state of contentss"""
+        """yield some status information about the state of contents"""
         yield dict(
             name="contents",
             actions=[
@@ -114,7 +114,7 @@ class ContentsAddon(BaseAddon):
                 to_path = self.output_files_dir / stem
                 resolved = str(to_path.resolve())
                 if resolved in yielded_dests:
-                    self.log.debu("Already populated", resolved)
+                    self.log.debug("Already populated", resolved)
                     continue
                 yielded_dests += [resolved]
                 yield from_path, to_path
@@ -175,8 +175,8 @@ class ContentsAddon(BaseAddon):
         api_path.parent.mkdir(parents=True, exist_ok=True)
 
         api_path.write_text(
-            json.dumps(listing, indent=2, sort_keys=True, cls=DateTimeEncoder),
-            encoding="utf-8",
+            json.dumps(listing, **JSON_FMT, cls=DateTimeEncoder),
+            **UTF8,
         )
 
         self.maybe_timestamp(api_path.parent)

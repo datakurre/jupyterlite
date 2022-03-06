@@ -1,7 +1,9 @@
+import email.utils
 import json
 import os
 import shutil
 import tempfile
+import time
 import warnings
 from pathlib import Path
 
@@ -11,10 +13,14 @@ from traitlets.config import LoggingConfigurable
 from ..constants import (
     DISABLED_EXTENSIONS,
     FEDERATED_EXTENSIONS,
+    JSON_FMT,
     JUPYTER_CONFIG_DATA,
     JUPYTERLITE_IPYNB,
     JUPYTERLITE_METADATA,
     SETTINGS_OVERRIDES,
+    SOURCEMAP_IGNORE_PATTERNS,
+    SOURCEMAPS,
+    UTF8,
 )
 from ..manager import LiteManager
 
@@ -33,6 +39,9 @@ class BaseAddon(LoggingConfigurable):
 
     def copy_one(self, src, dest):
         """copy one Path (a file or folder)"""
+        if self.manager.no_sourcemaps and self.is_ignored_sourcemap(src.name):
+            return
+
         if dest.is_dir():
             shutil.rmtree(dest)
         elif dest.exists():
@@ -44,8 +53,13 @@ class BaseAddon(LoggingConfigurable):
 
         self.maybe_timestamp(dest.parent)
 
+        copytree_kwargs = {}
+
+        if self.manager.no_sourcemaps:
+            copytree_kwargs["ignore"] = SOURCEMAP_IGNORE_PATTERNS
+
         if src.is_dir():
-            shutil.copytree(src, dest)
+            shutil.copytree(src, dest, **copytree_kwargs)
         else:
             shutil.copy2(src, dest)
 
@@ -65,7 +79,7 @@ class BaseAddon(LoggingConfigurable):
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True)
 
-        if "anaconda.org/" in url:
+        if "anaconda.org/" in url:  # pragma: no cover
             self.log.error(
                 f"[lite][fetch] cannot reliably download from anaconda.org {url}"
             )
@@ -77,6 +91,10 @@ class BaseAddon(LoggingConfigurable):
                 tmp_dest = tdp / dest.name
                 with tmp_dest.open("wb") as fd:
                     shutil.copyfileobj(response, fd)
+                last_modified = response.headers.get("Last-Modified")
+                if last_modified:
+                    epoch_time = time.mktime(email.utils.parsedate(last_modified))
+                    os.utime(tmp_dest, (epoch_time, epoch_time))
             shutil.copy2(tmp_dest, dest)
 
     def maybe_timestamp(self, path):
@@ -105,16 +123,17 @@ class BaseAddon(LoggingConfigurable):
             return
         return
 
-    def delete_one(self, src):
-        """delete... something"""
-        if src.is_dir():
-            shutil.rmtree(src)
-        elif src.exists():
-            src.unlink()
+    def delete_one(self, *src):
+        """delete... somethings"""
+        for src_dir in src:
+            if src_dir.is_dir():
+                shutil.rmtree(src_dir)
+            elif src_dir.exists():
+                src_dir.unlink()
 
     def validate_one_json_file(self, validator, path=None, data=None, selector=[]):
         if path:
-            loaded = json.loads(path.read_text(encoding="utf-8"))
+            loaded = json.loads(path.read_text(**UTF8))
         else:
             loaded = data
 
@@ -146,7 +165,7 @@ class BaseAddon(LoggingConfigurable):
                 return None
             klass = Draft7Validator
 
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        schema = json.loads(schema_path.read_text(**UTF8))
         return klass(schema)
 
     def merge_one_jupyterlite(self, out_path, in_paths):
@@ -164,7 +183,7 @@ class BaseAddon(LoggingConfigurable):
             self.log.debug(f"[lite][config][merge] . {in_path}")
             in_config = None
             try:
-                in_config = json.loads(in_path.read_text(encoding="utf-8"))
+                in_config = json.loads(in_path.read_text(**UTF8))
                 if out_path.name == JUPYTERLITE_IPYNB:
                     in_config = in_config["metadata"].get(JUPYTERLITE_METADATA)
             except:
@@ -198,17 +217,13 @@ class BaseAddon(LoggingConfigurable):
                         doc_path = in_path
                         break
 
-            doc = json.loads(doc_path.read_text(encoding="utf-8"))
+            doc = json.loads(doc_path.read_text(**UTF8))
 
             doc["metadata"][JUPYTERLITE_METADATA] = config
 
-            out_path.write_text(
-                json.dumps(doc, indent=2, sort_keys=True), encoding="utf-8"
-            )
+            out_path.write_text(json.dumps(doc, **JSON_FMT), **UTF8)
         else:
-            out_path.write_text(
-                json.dumps(config, indent=2, sort_keys=True), encoding="utf-8"
-            )
+            out_path.write_text(json.dumps(config, **JSON_FMT), **UTF8)
 
     def merge_jupyter_config_data(self, config, in_config):
         """merge well-known ``jupyter-config-data`` fields"""
@@ -247,3 +262,12 @@ class BaseAddon(LoggingConfigurable):
             named[ext["name"]] = ext
 
         config[FEDERATED_EXTENSIONS] = sorted(named.values(), key=lambda x: x["name"])
+
+    def is_ignored_sourcemap(self, path_name: str):
+        is_ignored = False
+        if self.manager.no_sourcemaps:
+            for map_ext in SOURCEMAPS:
+                if path_name.endswith(map_ext):
+                    is_ignored = True
+                    break
+        return is_ignored

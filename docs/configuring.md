@@ -48,48 +48,71 @@ schema-v0
 
 ### Content with the CLI
 
-With the [CLI](./cli.ipynb) installed, run
+With the [CLI](./cli.ipynb) installed, run:
 
 ```bash
 jupyter lite build
 ```
 
-...any contents of `{lite-dir}/files/` (and any added `--contents`) will be:
+Any contents found in:
+
+- `{lite-dir}/files/`
+- any _content roots_ added via:
+  - the CLI flag `--contents`
+  - the `#/LiteBuildConfig/contents` in `jupyter_lite_config.json`
+
+Will be:
 
 - copied to the built site under `{output-dir}/files/`
   - may have timestamps changed if `--source-date-epoch` is provided.
 - indexed to provide `{output-dir}/api/contents/{subdir?}/all.json`
 
+### Server Contents and Local Contents
+
+When a user changes a server-hosted file, a copy will be made to the browser's
+`IndexedDB`. A user's locally-modified copy will take precedence over any server
+contents, even if the server contents are newer.
+
+### Customizing Content Storage
+
+By default, all of a user's contents on the same domain will be available to all
+JupyterLite instances hosted there. To create separate content stores, change the
+`jupyter-lite.json#jupyter-config-data/contentsStorageName` from the default of
+`JupyterLite Storage`.
+
 ## Adding Extensions
 
-JupyterLab 3 [federated extensions] allow for adding new capabilities to JupyterLite
+JupyterLab 3 [pre-built extensions] allow for adding new capabilities to JupyterLite
 without rebuilding the entire web application. A good starting point for extensions that
 _might_ work is the JupyterLab issue _[Extension Compatibility with 3.0
 (#9461)][#9461]_. Additionally, this site demonstrates a few
 [extensions](#demo-extension-notes).
 
 [#9461]: https://github.com/jupyterlab/jupyterlab/issues/9461
-[federated extensions]: https://jupyterlab.readthedocs.io/en/stable/user/extensions.html
+[pre-built extensions]: https://jupyterlab.readthedocs.io/en/stable/user/extensions.html
 
 ### Extensions with the CLI
 
 #### Environment Extensions
 
-When you `jupyter lite build`, all federated extensions in your JupyterLab environment,
-e.g. `{sys.prefix}/share/jupyter/labextensions` will be:
+When you run `jupyter lite build`, all pre-built extensions in your JupyterLab
+environment, e.g. `{sys.prefix}/share/jupyter/labextensions` will be:
 
-- copied to `{output-dir}/lab/extensions`
+- copied to `{output-dir}/extensions`
 - have its theme information copied to `{output-dir}/{app/?}theme/`
+
+This discovery behavior can be disabled with the CLI flag `--ignore-sys-prefix` or
+`LiteBuildConfig/ignore_sys_prefix`.
 
 #### Extensions for a Specific App
 
 Similar to the above, by updating `$YOUR_JUPYTERLITE/{app}/jupyter-lite.json`, the
-federated extensions will only be avaialable for pages within that file tree.
+pre-built extensions will only be available for pages within that file tree.
 
 #### Custom Extensions
 
-By placing extensions under `{lite-dir}/lab/extensions/{org/?}{package}/`, these will
-also be copied into the `output-dir` _after_ any environment extensions, and all will be
+By placing extensions under `{lite-dir}/extensions/{org/?}{package}/`, these will also
+be copied into the `output-dir` _after_ any environment extensions, and all will be
 added to `{output-dir}/jupyter-lite.json#jupyter-config-data/federated_extensions`.
 
 ```{hint}
@@ -98,6 +121,51 @@ For example, after building a lab extension, you can copy the contents of
 extension.
 ```
 
+Finally, the `--federated-extensions` CLI flag and the
+`LiteBuildConfig/federated_extensions` config entry allow for adding additional
+federated extensions, as packaged in Python `.whl` or conda `.tar.bz2` packages.
+
+## Applications
+
+### Removing Applications
+
+Provide the `--apps` CLI argument once or multiple times, or configure
+`LiteBuildConfig/apps` to only copy select applications to the output folder: by
+default, all of the default [applications](../applications/index) will be copied to the
+output folder.
+
+### Removing Unused Shared Packages
+
+Provide the `--no-unused-shared-packages` or `LiteBuildConfig/no_unused_shared_packages`
+to prevent copying
+[shared packages](https://jupyterlab.readthedocs.io/en/stable/extension/extension_dev.html#deduplication)
+used only by removed applications. For lightweight apps like `repl`, this can result in
+a much smaller on-disk build.
+
+```{warning}
+Some JupyterLab extensions may require shared packages from the full JupyterLab
+application, and will not load with this setting.
+```
+
+### Removing Source Maps
+
+Provide `--no-sourcemaps`, or configure `no_sourcemaps` in a config file to prevent any
+`.map` files from being copied to the output folder. This creates a _drastically_
+smaller overall build.
+
+```{warning}
+Removing sourcemaps, in addition to making errors harder to debug, will _also_
+cause many `404` errors when a user does open the browser console, which
+can be _even more_ confusing.
+```
+
+For better baseline performance, the core JupyterLite distribution, and some federated
+extensions, only ship optimized JavaScript code, which is hard to debug. To improve
+this,
+[source maps](https://developer.mozilla.org/en-US/docs/Tools/Debugger/How_to/Use_a_source_map),
+are also provided to provide pointers to the original source code, and while _much_
+larger, are only loaded when debugging in browser consoles.
+
 ## Customizing Settings
 
 With the [CLI](./cli.ipynb), if you create an `overrides.json` in either the root, or a
@@ -105,6 +173,80 @@ specific `app` directory, these will be:
 
 - merged into
   `{output-dir}/{app?}/jupyter-lite.json#/jupyter-config-data/settingsOverrides`
+
+### Settings Storage
+
+By default, all of a user's settings on the same domain will be available to all
+JupyterLite instances hosted there. To create separate settings stores, change the
+`jupyter-lite.json#jupyter-config-data/settingsStorageName` from the default of
+`JupyterLite Storage`.
+
+## Adding pyolite wheels
+
+The [pyolite kernel](./kernels/pyolite.md) itself consists of a bit of JavaScript and
+customized python wheels, which in turn require other wheels and pre-built WASM modules
+and other JavaScript.
+
+Extra wheels that can be installed via `piplite` in a running kernel can be added via
+the `--piplite-urls` CLI flag or `LiteBuildConfig/piplite_urls` config value, or simply
+left in-place in `lite_dir/pypi`.
+
+These will be:
+
+- downloaded to the local cache
+- copied into `{output-dir}/pypi`
+- indexed into an `all.json` with data similar to the [PyPI Warehouse API]
+- added to `pipliteUrls` in `jupyter-lite.json`
+
+[pypi-warehouse-api]: https://warehouse.pypa.io/api-reference
+
+If a package is _not_ found in one of these URLs, it will be sought on the main Python
+Package Index (PyPI). This behavior can be disabled via `jupyter-lite.json`:
+
+```json
+"jupyter-config-data": {
+  "litePluginSettings": {
+    "@jupyterlite/pyolite-kernel-extension:kernel": {
+      "disablePyPIFallback": true
+    }
+  }
+}
+```
+
+## pyodide
+
+Beneath custom wheels are the raw JS and WebAssembly parts of `pyolite` provided by
+[pyodide](https://pyodide.org). As the full distribution is very large, and self-hosting
+of all its assets brings their own challenges, this use of CDN is the default for
+JupyterLite.
+
+A custom `pyodide.js`, along with its `packages.json` and the rest of its assets, such
+as might be downloaded via the [`--pyodide` CLI option](./cli.ipynb#pyodide), can also
+be configured. This can be either relative to the `lite_dir`, or as a full URL.
+
+```json
+"jupyter-config-data": {
+  "litePluginSettings": {
+    "@jupyterlite/pyolite-kernel-extension:kernel": {
+      "pyodideUrl": "./path/to/custom/pyodide/pyodide.js"
+    }
+  }
+}
+```
+
+## LaTeX
+
+Rendering $\LaTeX$ is generally handled in a special way when compared with most other
+renderers in JupyterLab. For this reason, it is _not_ presently covered by a _pre-built
+extension_, but rather by adding [MathJax 2](https://www.mathjax.org) directly to the
+page. As it changes very slowly, and is _relatively_ benign if missing for most use
+cases, this use of a CDN is the default for JupyterLite.
+
+Configuring `fullMathjaxUrl` and `mathjaxConfig` in `jupyter-lite.json` allows you to
+specify a relative or remote location, replacing (or avoiding) the CDN. If
+[`jupyter-server-mathjax`](https://github.com/jupyter-server/jupyter_server_mathjax) is
+installed, the default configuration `TeX-AMS-MML_HTMLorMML-full,Safe` will be copied
+into the output folder.
 
 ## About the Demo
 
@@ -203,12 +345,12 @@ Assuming you have a working JupyterLab 3 installation, look in your
 `{sys.prefix}/share/jupyter/labextensions`. Each folder contains either:
 
 - if it begins with `@`, a collection of packages
-- otherwise, a single federated extension
+- otherwise, a single pre-built extension
 
 ```bash
 cd $YOUR_JUPYTERLITE
-mkdir -p lab/extensions
-cd lab/extensions
+mkdir -p extensions
+cd extensions
 cp -r $PREFIX/share/jupyter/labextensions/@jupyter-widgets/jupyterlab-manager .
 ```
 
@@ -226,14 +368,10 @@ The Theme Manager expects to be able to load theme CSS/font assets from
 Continuing the example above:
 
 ```bash
-cd $YOUR_JUPYTERLITE/lab/extensions
+cd $YOUR_JUPYTERLITE/extensions
 mkdir -p ../build/themes
 cp -r @*/*/themes/* ../build/themes/
 cp -r @*/themes/* ../build/themes/
-# To also ensure these are available for JupyterLite Retro:
-mkdir -p ../../retro/build/themes
-cp -r @*/*/themes/* ../../retro/build/themes/
-cp -r @*/themes/* ../../retro/build/themes/
 ```
 
 #### Fill Out `federated_extensions`

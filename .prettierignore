@@ -1,7 +1,6 @@
 **/_output
 **/lib
 **/node_modules
-**/package.json
 **/static
 
 .yarn-packages
@@ -10,8 +9,19 @@ docs/_build
 node_modules
 docs/api/ts
 .pytest_cache
-app/lab/extensions/
+app/extensions/
+.cache/
 
 # JS templating
 bootstrap.js
 index.template.js
+
+# generated
+_pypi.ts
+**/pypi/all.json
+
+# The changelog is updated by the releaser
+CHANGELOG.md
+
+# UI tests
+ui-tests/ui-tests-app

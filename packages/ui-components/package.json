@@ -1,6 +1,6 @@
 {
   "name": "@jupyterlite/ui-components",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-beta.1",
   "description": "JupyterLite - UI components",
   "homepage": "https://github.com/jupyterlite/jupyterlite",
   "bugs": {
@@ -19,7 +19,6 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "style": "style/index.css",
-  "styleModule": "style/index.js",
   "directories": {
     "lib": "lib/"
   },
@@ -43,23 +42,24 @@
     "watch": "tsc -b --watch"
   },
   "dependencies": {
-    "@jupyterlab/ui-components": "^3.0.0"
+    "@jupyterlab/ui-components": "^3.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.10.2",
     "@babel/preset-env": "^7.10.2",
-    "@jupyterlab/testutils": "^3.0.0",
+    "@jupyterlab/testutils": "^3.3.0",
     "@types/jest": "^26.0.10",
     "babel-loader": "^8.0.6",
     "jest": "^26.4.2",
     "rimraf": "~3.0.0",
     "ts-jest": "^26.3.0",
-    "typescript": "~4.2.3"
+    "typescript": "~4.5.2"
   },
   "publishConfig": {
     "access": "public"
   },
   "jupyterlab": {
     "coreDependency": true
-  }
+  },
+  "styleModule": "style/index.js"
 }

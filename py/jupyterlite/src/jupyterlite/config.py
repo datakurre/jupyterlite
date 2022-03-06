@@ -39,10 +39,7 @@ class LiteBuildConfig(LoggingConfigurable):
 
     apps: _Tuple[_Text] = TypedTuple(
         Unicode(),
-        help=(
-            f"""the Lite apps: currently {C.JUPYTERLITE_APPS}. """
-            f"""Required: {C.JUPYTERLITE_APPS_REQUIRED}"""
-        ),
+        help=("""the Lite apps to explicitly include in build e.g. lab, retro, repl"""),
     ).tag(config=True)
 
     app_archive: Path = CPath(
@@ -72,12 +69,33 @@ class LiteBuildConfig(LoggingConfigurable):
         help="ignore lab components from sys.prefix, such as federated_extensions",
     ).tag(config=True)
 
+    mathjax_dir: Path = CPath(
+        help="A local path to a complete/sufficient installation of MathJax 2"
+    ).tag(config=True)
+
     federated_extensions: _Tuple[str] = TypedTuple(
         Unicode(), help="Local paths or URLs in which to find federated_extensions"
     ).tag(config=True)
 
+    piplite_urls: _Tuple[str] = TypedTuple(
+        Unicode(),
+        help="Local paths or URLs of piplite-compatible wheels to copy and index",
+    ).tag(config=True)
+
+    pyodide_url: str = Unicode(
+        allow_none=True, help="Local path or URL of a pyodide distribution tarball"
+    ).tag(config=True)
+
     settings_overrides: _Tuple[_Text] = TypedTuple(
         CPath(), help=("Specific overrides.json to include")
+    ).tag(config=True)
+
+    no_sourcemaps: bool = Bool(
+        False, help="Strip all sourcemaps from applications and extensions"
+    ).tag(config=True)
+
+    no_unused_shared_packages: bool = Bool(
+        False, help="Remove any shared packages not used by --apps"
     ).tag(config=True)
 
     # serving
@@ -87,6 +105,7 @@ class LiteBuildConfig(LoggingConfigurable):
             " env: JUPYTERLITE_PORT"
         )
     ).tag(config=True)
+
     base_url: str = Unicode(
         help=("[serve] the prefix to use." " env: JUPYTERLITE_BASE_URL")
     ).tag(config=True)
@@ -104,7 +123,7 @@ class LiteBuildConfig(LoggingConfigurable):
 
     @default("apps")
     def _default_apps(self):
-        return C.JUPYTERLITE_APPS
+        return []
 
     @default("disable_addons")
     def _default_disable_addons(self):
@@ -173,7 +192,7 @@ class LiteBuildConfig(LoggingConfigurable):
 
     @default("app_archive")
     def _default_app_archive(self):
-        return Path(os.environ.get("JUPYTERLITE_APP_ARCHIVE") or C.DEFAULT_APP_ARCHIVE)
+        return Path(os.environ.get("JUPYTERLITE_APP_ARCHIVE") or C.ALL_APP_ARCHIVES[-1])
 
     @default("output_archive")
     def _default_output_archive(self):
@@ -196,3 +215,7 @@ class LiteBuildConfig(LoggingConfigurable):
     @default("base_url")
     def _default_base_url(self):
         return os.environ.get("JUPYTERLITE_BASE_URL", "/")
+
+    @default("pyodide_url")
+    def _default_pyodide_url(self):
+        return os.environ.get("JUPYTERLITE_PYODIDE_URL")
