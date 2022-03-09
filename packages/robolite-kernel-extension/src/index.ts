@@ -7,25 +7,32 @@ import { JupyterLiteServer, JupyterLiteServerPlugin } from '@jupyterlite/server'
 
 import { IKernel, IKernelSpecs } from '@jupyterlite/kernel';
 
-import { RoboliteKernel } from '@jupyterlite/robolite-kernel';
-
 /**
  * The default CDN fallback for Pyodide
  */
-const PYODIDE_CDN_URL = 'https://cdn.jsdelivr.net/pyodide/v0.17.0/full/pyodide.js';
+const PYODIDE_CDN_URL = 'https://cdn.jsdelivr.net/pyodide/v0.19.1/full/pyodide.js';
 
 /**
- * A plugin to register the Robot Framework kernel.
+ * The id for the extension, and key in the litePlugins.
+ */
+const PLUGIN_ID = '@jupyterlite/robolite-kernel-extension:kernel';
+
+/**
+ * A plugin to register the Pyodide kernel.
  */
 const kernel: JupyterLiteServerPlugin<void> = {
-  id: '@jupyterlite/robolite-kernel-extension:kernel',
+  id: PLUGIN_ID,
   autoStart: true,
   requires: [IKernelSpecs],
   activate: (app: JupyterLiteServer, kernelspecs: IKernelSpecs) => {
-    const url = PageConfig.getOption('pyodideUrl') || PYODIDE_CDN_URL;
-    const pyodideUrl = URLExt.isLocal(url)
-      ? URLExt.join(window.location.origin, url)
-      : url;
+    const baseUrl = PageConfig.getBaseUrl();
+    const config =
+      JSON.parse(PageConfig.getOption('litePluginSettings') || '{}')[PLUGIN_ID] || {};
+    const url = config.pyodideUrl || PYODIDE_CDN_URL;
+    const pyodideUrl = URLExt.parse(url).href;
+    const rawPipUrls = config.pipliteUrls || [];
+    const pipliteUrls = rawPipUrls.map((pipUrl: string) => URLExt.parse(pipUrl).href);
+    const disablePyPIFallback = !!config.disablePyPIFallback;
 
     kernelspecs.register({
       spec: {
@@ -39,21 +46,25 @@ const kernel: JupyterLiteServerPlugin<void> = {
           display_name: 'Robot Framework',
           language: 'robotframework',
           interrupt_mode: 'message',
-          metadata: {}
+          metadata: {},
         },
         resources: {
           'logo-32x32': 'TODO',
-          'logo-64x64': '/kernelspecs/robotframework.png'
-        }
+          'logo-64x64': URLExt.join(baseUrl, '/kernelspecs/robotframework.png'),
+        },
       },
       create: async (options: IKernel.IOptions): Promise<IKernel> => {
+        const { RoboliteKernel } = await import('@jupyterlite/robolite-kernel');
+
         return new RoboliteKernel({
           ...options,
-          pyodideUrl
+          pyodideUrl,
+          pipliteUrls,
+          disablePyPIFallback,
         });
-      }
+      },
     });
-  }
+  },
 };
 
 const plugins: JupyterLiteServerPlugin<any>[] = [kernel];

@@ -1,6 +1,6 @@
 {
   "name": "@jupyterlite/robolite-kernel",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-beta.1",
   "description": "JupyterLite - Robolite Kernel",
   "homepage": "https://github.com/jupyterlite/jupyterlite",
   "bugs": {
@@ -29,7 +29,7 @@
     "lib/*.js",
     "style/*.css",
     "style/index.js",
-    "py/**/*.whl"
+    "pypi/*.{json,whl}"
   ],
   "scripts": {
     "build": "yarn run build:lib",
@@ -38,7 +38,7 @@
     "build:test": "tsc --build tsconfig.test.json",
     "clean": "yarn run clean:lib && yarn run clean:python",
     "clean:lib": "rimraf lib && rimraf tsconfig.tsbuildinfo",
-    "clean:python": "rimraf py/dist",
+    "clean:python": "rimraf py/**/dist",
     "docs": "typedoc src",
     "prepublishOnly": "npm run build",
     "test": "jest",
@@ -48,28 +48,20 @@
     "watch": "tsc -b --watch"
   },
   "dependencies": {
-    "@jupyterlite/kernel": "^0.1.0-alpha.6"
+    "@jupyterlite/kernel": "^0.1.0-beta.1"
   },
   "devDependencies": {
     "@babel/core": "^7.11.6",
     "@babel/preset-env": "^7.12.1",
-    "@jupyterlab/testutils": "^3.1.0-rc.2",
+    "@jupyterlab/testutils": "~3.3.0",
     "@types/jest": "^26.0.10",
     "jest": "^26.4.2",
     "rimraf": "~3.0.0",
     "ts-jest": "^26.3.0",
-    "typescript": "~4.2.3"
+    "typescript": "~4.5.2"
   },
   "publishConfig": {
     "access": "public"
-  },
-  "robolite": {
-    "packages": {
-      "py/pyolite": "0.1.0a6",
-      "py/ipykernel": "5.5.5",
-      "py/nbformat": "4.2.0",
-      "py/widgetsnbextension": "3.5.0"
-    }
   },
   "styleModule": "style/index.js"
 }
