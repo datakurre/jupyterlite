@@ -27,6 +27,7 @@ from ..constants import (
     LITE_PLUGIN_SETTINGS,
     NOARCH_WHL,
     PYOLITE_PLUGIN_ID,
+    ROBOLITE_PLUGIN_ID,
     UTF8,
 )
 from .base import BaseAddon
@@ -188,6 +189,12 @@ class PipliteAddon(BaseAddon):
         old_urls = (
             config.setdefault(JUPYTER_CONFIG_DATA, {})
             .setdefault(LITE_PLUGIN_SETTINGS, {})
+            .setdefault(ROBOLITE_PLUGIN_ID, {})
+            .get(PIPLITE_URLS, [])
+        )
+        old_urls = (
+            config.setdefault(JUPYTER_CONFIG_DATA, {})
+            .setdefault(LITE_PLUGIN_SETTINGS, {})
             .setdefault(PYOLITE_PLUGIN_ID, {})
             .get(PIPLITE_URLS, [])
         )
@@ -233,6 +240,10 @@ class PipliteAddon(BaseAddon):
         # ... and only update if actually changed
         if new_urls:
             config[JUPYTER_CONFIG_DATA][LITE_PLUGIN_SETTINGS][PYOLITE_PLUGIN_ID][
+                PIPLITE_URLS
+            ] = new_urls
+
+            config[JUPYTER_CONFIG_DATA][LITE_PLUGIN_SETTINGS][ROBOLITE_PLUGIN_ID][
                 PIPLITE_URLS
             ] = new_urls
 

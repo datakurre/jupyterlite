@@ -47,6 +47,7 @@ LITE_PLUGIN_SETTINGS = "litePluginSettings"
 
 #: the plugin id for the pyolite kernel
 PYOLITE_PLUGIN_ID = "@jupyterlite/pyolite-kernel-extension:kernel"
+ROBOLITE_PLUGIN_ID = "@jupyterlite/robolite-kernel-extension:kernel"
 
 ### jupyterlite "well-known" paths
 
