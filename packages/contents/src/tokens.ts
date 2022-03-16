@@ -12,6 +12,11 @@ export const IContents = new Token<IContents>('@jupyterlite/contents:IContents')
  */
 export interface IContents {
   /**
+   * A promise that resolves after the contents have been full initialized.
+   */
+  ready: Promise<void>;
+
+  /**
    * Create a new untitled file or directory in the specified directory path.
    *
    * @param options: The options used to create the file.
@@ -118,4 +123,32 @@ export interface IContents {
    * @returns A promise which resolves when the checkpoint is deleted.
    */
   deleteCheckpoint(path: string, checkpointID: string): Promise<void>;
+}
+
+/**
+ * Commonly-used mimetypes
+ */
+export namespace MIME {
+  export const JS = 'application/javascript';
+  export const JSON = 'application/json';
+  export const MANIFEST_JSON = 'application/manifest+json';
+  export const PLAIN_TEXT = 'text/plain';
+  export const PYTHON = 'application/x-python-code';
+  export const SVG = 'image/svg+xml';
+  export const XML = 'application/xml';
+
+  /**
+   * A list of mime types of common text file types
+   */
+  export const KNOWN_TEXT_TYPES = new Set([
+    JS,
+    JSON,
+    MANIFEST_JSON,
+    PLAIN_TEXT,
+    PYTHON,
+    SVG,
+    XML,
+  ]);
+
+  export const OCTET_STREAM = 'octet/stream';
 }

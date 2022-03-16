@@ -182,7 +182,7 @@ traitlets = "*"
 
 [[package]]
 name = "jupyterlite"
-version = "0.1.0b1"
+version = "0.1.0b3"
 description = "tools for building JupyterLite sites"
 category = "main"
 optional = false
@@ -478,7 +478,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "4ed12df16cdf4885a6acd97be4e74e949278e68fdafbf648c4975a2a50cc7470"
+content-hash = "96d139fe86d659d02c6a6aa312c0a26214032e29b8027a1959b919e4b8d67fb6"
 
 [metadata.files]
 bleach = [
@@ -612,8 +612,8 @@ jupyter-core = [
     {file = "jupyter_core-4.9.2.tar.gz", hash = "sha256:d69baeb9ffb128b8cd2657fcf2703f89c769d1673c851812119e3a2a0e93ad9a"},
 ]
 jupyterlite = [
-    {file = "jupyterlite-0.1.0b1-py3-none-any.whl", hash = "sha256:ab56d5e815e15d15321967a31b1864e1e20de0259acade79c2f2c13e3855abc3"},
-    {file = "jupyterlite-0.1.0b1.tar.gz", hash = "sha256:67bb3613ad6f97de50a2e08bfc6d2513df94a31351dfc2bdb369a872fb4321e1"},
+    {file = "jupyterlite-0.1.0b3-py3-none-any.whl", hash = "sha256:db4afc0585d28b6fa01457e6d76e87d3309b42df84a3eca863d58f9772f8739d"},
+    {file = "jupyterlite-0.1.0b3.tar.gz", hash = "sha256:58cbe659ab6c54d72ea8632e2cb5345b70b8ac87f36b24bfe4d7239acd7287be"},
 ]
 keyring = [
     {file = "keyring-23.5.0-py3-none-any.whl", hash = "sha256:b0d28928ac3ec8e42ef4cc227822647a19f1d544f21f96457965dc01cf555261"},
