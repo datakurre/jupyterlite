@@ -49,9 +49,6 @@ async function loadPyodideAndPackages() {
   await pyodide.runPythonAsync(`
     await piplite.install([
       'matplotlib',
-      'traitlets',
-      'widgetsnbextension',
-      'nbformat',
       'ipykernel',
     ], keep_going=True);
     await piplite.install([
@@ -62,10 +59,6 @@ async function loadPyodideAndPackages() {
     ], keep_going=True);
     await piplite.install([
       'robotkernel',
-      'robotframework',
-      'ipywidgets',
-      'lunr',
-      'nbformat',
     ], keep_going=True);
     import pyolite
     from robotkernel.kernel import RobotKernel;
